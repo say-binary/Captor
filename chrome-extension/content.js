@@ -2,6 +2,7 @@
 
 let saveBtn = null
 let hideTimer = null
+let justShown = false // suppress selectionchange-triggered hides right after mouseup
 
 function createSaveButton() {
   const btn = document.createElement('button')
@@ -83,7 +84,10 @@ document.addEventListener('mouseup', (e) => {
     const text = sel ? sel.toString().trim() : ''
     if (text.length > 0) {
       positionButton(e.clientX, e.clientY)
-      scheduleHide(3000)
+      justShown = true
+      // After 500ms allow selectionchange to hide the button again
+      setTimeout(() => { justShown = false }, 500)
+      scheduleHide(4000)
     } else {
       hideButton()
     }
@@ -91,9 +95,13 @@ document.addEventListener('mouseup', (e) => {
 })
 
 document.addEventListener('selectionchange', () => {
+  if (justShown) return // don't fight with mouseup
   const sel = window.getSelection()
   if (!sel || sel.toString().trim().length === 0) {
-    scheduleHide(300)
+    // Only hide if the button is currently visible
+    if (saveBtn && saveBtn.style.display !== 'none') {
+      scheduleHide(400)
+    }
   }
 })
 
@@ -104,10 +112,40 @@ function sendHighlight() {
 
   hideButton()
 
-  chrome.runtime.sendMessage({
-    type: 'SAVE_HIGHLIGHT',
-    highlightedText: text,
-    sourceUrl: window.location.href,
-    sourceTitle: document.title,
-  })
+  chrome.runtime.sendMessage(
+    {
+      type: 'SAVE_HIGHLIGHT',
+      highlightedText: text,
+      sourceUrl: window.location.href,
+      sourceTitle: document.title,
+    },
+    (response) => {
+      if (chrome.runtime.lastError || (response && !response.ok)) {
+        showToast('Captor app is not running. Launch it first.')
+      }
+    }
+  )
+}
+
+function showToast(msg) {
+  const toast = document.createElement('div')
+  toast.textContent = msg
+  toast.style.cssText = [
+    'position: fixed',
+    'bottom: 24px',
+    'left: 50%',
+    'transform: translateX(-50%)',
+    'z-index: 2147483647',
+    'background: #2a2a3e',
+    'color: #e0e0f0',
+    'border: 1px solid rgba(255,255,255,0.12)',
+    'border-radius: 8px',
+    'padding: 10px 18px',
+    'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    'font-size: 13px',
+    'box-shadow: 0 4px 20px rgba(0,0,0,0.4)',
+    'pointer-events: none',
+  ].join(';')
+  document.body.appendChild(toast)
+  setTimeout(() => toast.remove(), 3500)
 }
