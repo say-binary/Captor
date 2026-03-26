@@ -17,19 +17,19 @@ if [ -z "$EXTENSION_ID" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+HOST_WRAPPER="$SCRIPT_DIR/captor-host.sh"
 HOST_SCRIPT="$SCRIPT_DIR/captor-host.js"
-MANIFEST_SRC="$SCRIPT_DIR/com.captor.nativehost.json"
 MANIFEST_DEST="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.captor.nativehost.json"
 
-# Make the host script executable
-chmod +x "$HOST_SCRIPT"
+# Make both scripts executable
+chmod +x "$HOST_WRAPPER" "$HOST_SCRIPT"
 
-# Write the manifest with correct absolute path and extension ID
+# Write the manifest pointing to the shell wrapper (so Chrome finds node)
 cat > "$MANIFEST_DEST" <<EOF
 {
   "name": "com.captor.nativehost",
   "description": "Captor Native Messaging Host",
-  "path": "$HOST_SCRIPT",
+  "path": "$HOST_WRAPPER",
   "type": "stdio",
   "allowed_origins": ["chrome-extension://$EXTENSION_ID/"]
 }
@@ -38,7 +38,7 @@ EOF
 echo "✓ Native messaging host registered at:"
 echo "  $MANIFEST_DEST"
 echo ""
-echo "  Host script: $HOST_SCRIPT"
-echo "  Extension:   chrome-extension://$EXTENSION_ID/"
+echo "  Host wrapper: $HOST_WRAPPER"
+echo "  Extension:    chrome-extension://$EXTENSION_ID/"
 echo ""
 echo "Restart Chrome if it was already open, then try saving a highlight."

@@ -2,7 +2,8 @@
 
 let saveBtn = null
 let hideTimer = null
-let justShown = false // suppress selectionchange-triggered hides right after mouseup
+let justShown = false  // suppress selectionchange-triggered hides right after mouseup
+let lockedText = ''    // text that was selected when button was shown
 
 function createSaveButton() {
   const btn = document.createElement('button')
@@ -78,17 +79,24 @@ function scheduleHide(delay = 1800) {
 }
 
 document.addEventListener('mouseup', (e) => {
+  // Ignore clicks on our own button
+  if (e.target === saveBtn) return
+
   // Give browser a tick to update the selection
   setTimeout(() => {
     const sel = window.getSelection()
     const text = sel ? sel.toString().trim() : ''
     if (text.length > 0) {
+      // Don't reposition if the same text is still selected and button is visible
+      if (text === lockedText && saveBtn && saveBtn.style.display !== 'none') return
+
+      lockedText = text
       positionButton(e.clientX, e.clientY)
       justShown = true
-      // After 500ms allow selectionchange to hide the button again
       setTimeout(() => { justShown = false }, 500)
       scheduleHide(4000)
     } else {
+      lockedText = ''
       hideButton()
     }
   }, 10)
@@ -106,10 +114,11 @@ document.addEventListener('selectionchange', () => {
 })
 
 function sendHighlight() {
-  const sel = window.getSelection()
-  const text = sel ? sel.toString().trim() : ''
+  // Use lockedText first (most reliable), fall back to live selection
+  const text = lockedText || (window.getSelection() ? window.getSelection().toString().trim() : '')
   if (!text) return
 
+  lockedText = ''
   hideButton()
 
   chrome.runtime.sendMessage(
