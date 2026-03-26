@@ -2,9 +2,10 @@ node_modules/
 build/
 dist/
 .DS_Store
-helpers/ocr
 *.pptx
 *.py
 *.pyc
+
+# Compiled Swift binaries — rebuilt automatically by `npm install` via postinstall
 helpers/copy_selection
 helpers/ocr
