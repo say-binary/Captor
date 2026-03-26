@@ -49,8 +49,11 @@ function getScreenshotsDir() {
 }
 
 // ── Index file ────────────────────────────────────────────────────────────
-// Always lives in userData so we can find it regardless of active folder
+// Lives inside the active folder so each folder has its own highlights list.
+// Falls back to userData/index.json when no folder is set.
 function getIndexPath() {
+  const active = getActiveFolder()
+  if (active) return path.join(active, 'index.json')
   return path.join(app.getPath('userData'), 'index.json')
 }
 
