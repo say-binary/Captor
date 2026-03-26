@@ -1,7 +1,26 @@
-const { desktopCapturer, screen } = require('electron')
+const { desktopCapturer, screen, app } = require('electron')
 const fs = require('fs')
 const path = require('path')
+const { execFile } = require('child_process')
 const storage = require('./storage')
+
+function runOCR(filePath) {
+  return new Promise((resolve) => {
+    // Resolve the helper path relative to the app — works both in dev and packaged
+    const helperPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'helpers', 'ocr')
+      : path.join(__dirname, '../../helpers/ocr')
+
+    execFile(helperPath, [filePath], { timeout: 10000 }, (err, stdout) => {
+      if (err) {
+        console.warn('OCR failed:', err.message)
+        resolve('')
+        return
+      }
+      resolve(stdout.trim())
+    })
+  })
+}
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -61,6 +80,9 @@ async function takeScreenshot(rect) {
   const previewWidth = Math.min(480, cropRect.width)
   const dataURL = cropped.resize({ width: previewWidth }).toDataURL()
 
+  // Run OCR on the saved PNG (non-blocking via Promise.race with a fallback)
+  const extractedText = await runOCR(filePath)
+
   return {
     id,
     filePath,
@@ -68,6 +90,7 @@ async function takeScreenshot(rect) {
     timestamp: parseInt(id),
     width: rect.width,
     height: rect.height,
+    extractedText,
   }
 }
 

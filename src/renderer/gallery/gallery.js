@@ -32,7 +32,8 @@ function getFiltered() {
     list = list.filter(
       (h) =>
         (h.note && h.note.toLowerCase().includes(q)) ||
-        (h.tags && h.tags.some((t) => t.includes(q)))
+        (h.tags && h.tags.some((t) => t.includes(q))) ||
+        (h.extractedText && h.extractedText.toLowerCase().includes(q))
     )
   }
 
@@ -123,8 +124,17 @@ async function buildCard(highlight) {
 
   const noteEl = document.createElement('div')
   noteEl.className = 'card-note' + (highlight.note ? '' : ' empty')
-  noteEl.textContent = highlight.note || 'No note'
+  noteEl.textContent = highlight.note || (highlight.extractedText ? '' : 'No note')
   body.appendChild(noteEl)
+
+  // Show a short excerpt of extracted text if present
+  if (highlight.extractedText) {
+    const textEl = document.createElement('div')
+    textEl.className = 'card-ocr-text'
+    const excerpt = highlight.extractedText.replace(/\n/g, ' ').slice(0, 80)
+    textEl.textContent = excerpt + (highlight.extractedText.length > 80 ? '…' : '')
+    body.appendChild(textEl)
+  }
 
   if (highlight.tags && highlight.tags.length > 0) {
     const tagsEl = document.createElement('div')
@@ -165,6 +175,16 @@ function openLightbox(highlight, dataURL) {
     badge.textContent = tag
     tagsEl.appendChild(badge)
   })
+
+  // Show extracted text block if present
+  const ocrBlock = document.getElementById('lightboxOcrBlock')
+  const ocrText = document.getElementById('lightboxOcrText')
+  if (highlight.extractedText && highlight.extractedText.trim()) {
+    ocrText.textContent = highlight.extractedText
+    ocrBlock.style.display = 'block'
+  } else {
+    ocrBlock.style.display = 'none'
+  }
 
   lb.style.display = 'flex'
 }

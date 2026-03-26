@@ -2,10 +2,24 @@ let currentCapture = null
 
 window.captorAPI.onShowAnnotation((data) => {
   currentCapture = data
+
   document.getElementById('preview').src = data.dataURL
   document.getElementById('note').value = ''
   document.getElementById('tags').value = ''
-  // Auto-focus the note field
+
+  // Show OCR section if text was extracted
+  const ocrSection = document.getElementById('ocrSection')
+  const extractedTextEl = document.getElementById('extractedText')
+
+  if (data.extractedText && data.extractedText.trim()) {
+    extractedTextEl.value = data.extractedText
+    ocrSection.style.display = 'flex'
+  } else {
+    extractedTextEl.value = ''
+    ocrSection.style.display = 'none'
+  }
+
+  // Auto-focus note field
   setTimeout(() => document.getElementById('note').focus(), 80)
 })
 
@@ -18,6 +32,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     .split(',')
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean)
+  const extractedText = document.getElementById('extractedText').value.trim()
 
   await window.captorAPI.saveHighlight({
     id: currentCapture.id,
@@ -27,6 +42,7 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     height: currentCapture.height,
     note,
     tags,
+    extractedText,
   })
 
   currentCapture = null
@@ -37,7 +53,6 @@ document.getElementById('cancelBtn').addEventListener('click', () => {
   window.captorAPI.cancelCapture()
 })
 
-// Allow Escape to cancel
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     currentCapture = null

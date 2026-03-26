@@ -28,9 +28,9 @@ function register() {
     windows.hideOverlay()
   })
 
-  // Annotation form submits note + tags
-  ipcMain.handle('save-highlight', (event, { id, filePath, timestamp, width, height, note, tags }) => {
-    const entry = { id, filePath, timestamp, width, height, note, tags }
+  // Annotation form submits note + tags + (optionally edited) extracted text
+  ipcMain.handle('save-highlight', (event, { id, filePath, timestamp, width, height, note, tags, extractedText }) => {
+    const entry = { id, filePath, timestamp, width, height, note, tags, extractedText: extractedText || '' }
     storage.appendEntry(entry)
     windows.hideAnnotation()
     windows.refreshGallery(entry)

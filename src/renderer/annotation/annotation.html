@@ -12,8 +12,17 @@
       <img id="preview" alt="Captured highlight" />
     </div>
     <div class="form">
+
+      <div id="ocrSection" class="ocr-section" style="display:none">
+        <div class="ocr-header">
+          <label>Extracted Text</label>
+          <span id="ocrBadge" class="ocr-badge">OCR</span>
+        </div>
+        <textarea id="extractedText" class="ocr-textarea" placeholder="No text detected" rows="4" spellcheck="true"></textarea>
+      </div>
+
       <label for="note">Note</label>
-      <textarea id="note" placeholder="What is this about?" rows="3"></textarea>
+      <textarea id="note" placeholder="What is this about?" rows="2"></textarea>
 
       <label for="tags">Tags <span class="hint">(comma-separated)</span></label>
       <input id="tags" type="text" placeholder="e.g. ux, pricing, inspiration" />

@@ -96,7 +96,7 @@ function createFloatingButtonWindow() {
 function createAnnotationWindow() {
   annotationWin = new BrowserWindow({
     width: 520,
-    height: 420,
+    height: 560,
     frame: true,
     alwaysOnTop: true,
     resizable: false,
