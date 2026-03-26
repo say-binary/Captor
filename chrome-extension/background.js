@@ -3,42 +3,30 @@
 
 const NATIVE_HOST = 'com.captor.nativehost'
 
-let port = null
-
-function getPort() {
-  if (port) return port
-  try {
-    port = chrome.runtime.connectNative(NATIVE_HOST)
-    port.onDisconnect.addListener(() => {
-      console.log('Captor native host disconnected:', chrome.runtime.lastError?.message)
-      port = null
-    })
-    port.onMessage.addListener((msg) => {
-      console.log('Captor native host reply:', msg)
-    })
-  } catch (err) {
-    console.error('Failed to connect to Captor native host:', err)
-    port = null
-  }
-  return port
-}
-
+// Use sendNativeMessage (one-shot) instead of connectNative (persistent port).
+// MV3 service workers are terminated when idle — a persistent port would be
+// lost silently. sendNativeMessage wakes the host fresh each time.
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type !== 'SAVE_HIGHLIGHT') return
+  if (message.type !== 'SAVE_HIGHLIGHT') return true
 
-  const p = getPort()
-  if (!p) {
-    console.error('Captor: native host not available. Is the app running?')
-    sendResponse({ ok: false, error: 'Native host not available' })
-    return
-  }
+  chrome.runtime.sendNativeMessage(
+    NATIVE_HOST,
+    {
+      type: 'SAVE_HIGHLIGHT',
+      highlightedText: message.highlightedText,
+      sourceUrl: message.sourceUrl,
+      sourceTitle: message.sourceTitle,
+    },
+    (response) => {
+      if (chrome.runtime.lastError) {
+        const err = chrome.runtime.lastError.message
+        console.error('Captor native host error:', err)
+        sendResponse({ ok: false, error: err })
+      } else {
+        sendResponse(response || { ok: true })
+      }
+    }
+  )
 
-  p.postMessage({
-    type: 'SAVE_HIGHLIGHT',
-    highlightedText: message.highlightedText,
-    sourceUrl: message.sourceUrl,
-    sourceTitle: message.sourceTitle,
-  })
-
-  sendResponse({ ok: true })
+  return true // keep message channel open for async sendResponse
 })
