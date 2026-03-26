@@ -1,0 +1,356 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  background: #13131f;
+  color: #e0e0f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  overflow: hidden;
+  display: flex;
+}
+
+/* ── Sidebar ─────────────────────────────────── */
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+  background: #0e0e1c;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  padding: 16px 12px 12px;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #c0b8ff;
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+
+.logo svg {
+  width: 20px;
+  height: 20px;
+  color: #6c63ff;
+}
+
+.search-wrap input {
+  width: 100%;
+  background: #1a1a30;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: #e0e0f0;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.search-wrap input:focus {
+  border-color: #6c63ff;
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5a5a7a;
+  margin-top: 6px;
+  padding-left: 2px;
+}
+
+.tag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.tag-pill {
+  text-align: left;
+  background: transparent;
+  border: none;
+  color: #9999bb;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.tag-pill:hover {
+  background: rgba(108, 99, 255, 0.12);
+  color: #c0b8ff;
+}
+
+.tag-pill.active {
+  background: rgba(108, 99, 255, 0.2);
+  color: #c0b8ff;
+  font-weight: 600;
+}
+
+.spacer { flex: 1; }
+
+.count {
+  font-size: 11px;
+  color: #44445a;
+  padding-left: 2px;
+}
+
+/* ── Main area ───────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+
+.toolbar-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #c0b8ff;
+}
+
+select {
+  background: #1a1a30;
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #9999bb;
+  font-family: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  outline: none;
+  cursor: pointer;
+}
+
+.grid {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  align-content: start;
+}
+
+/* ── Cards ───────────────────────────────────── */
+.card {
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  display: flex;
+  flex-direction: column;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(108, 99, 255, 0.4);
+  box-shadow: 0 6px 24px rgba(108, 99, 255, 0.15);
+}
+
+.card-img-wrap {
+  background: #0d0d1a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 140px;
+  overflow: hidden;
+}
+
+.card-img-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.card-body {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.card-note {
+  font-size: 12px;
+  color: #c8c8e0;
+  line-height: 1.5;
+  /* Clamp to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 36px;
+}
+
+.card-note.empty {
+  color: #44445a;
+  font-style: italic;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag-badge {
+  background: rgba(108, 99, 255, 0.18);
+  color: #a09af0;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.card-date {
+  font-size: 10px;
+  color: #44445a;
+  margin-top: auto;
+}
+
+/* ── Empty state ─────────────────────────────── */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #44445a;
+  padding: 40px;
+  text-align: center;
+}
+
+.empty-icon svg {
+  width: 48px;
+  height: 48px;
+  color: #2a2a40;
+  margin-bottom: 8px;
+}
+
+.empty-state .sub {
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+kbd {
+  font-family: inherit;
+  background: rgba(255,255,255,0.08);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* ── Lightbox ────────────────────────────────── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(6px);
+}
+
+.lightbox-content {
+  position: relative;
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  max-width: 85vw;
+  max-height: 85vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 80px rgba(0,0,0,0.7);
+}
+
+.lightbox-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  color: #e0e0f0;
+  font-size: 20px;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  transition: background 0.15s;
+}
+
+.lightbox-close:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+#lightboxImg {
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+  display: block;
+  background: #0d0d1a;
+}
+
+.lightbox-meta {
+  padding: 14px 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: 700px;
+}
+
+.lightbox-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.lightbox-date {
+  font-size: 11px;
+  color: #44445a;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }

@@ -1,0 +1,44 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 52px;
+  height: 52px;
+  background: transparent;
+  overflow: hidden;
+  -webkit-app-region: drag;
+}
+
+#captureBtn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #6c63ff, #4ecdc4);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(108, 99, 255, 0.5);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  -webkit-app-region: no-drag;
+  margin: 2px;
+}
+
+#captureBtn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 20px rgba(108, 99, 255, 0.7);
+}
+
+#captureBtn:active {
+  transform: scale(0.95);
+}
+
+#captureBtn svg {
+  width: 22px;
+  height: 22px;
+}
