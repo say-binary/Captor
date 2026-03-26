@@ -1,9 +1,10 @@
 {
   "manifest_version": 3,
   "name": "Captor Highlight",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Save text highlights to Captor desktop app",
   "permissions": ["nativeMessaging"],
+  "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
@@ -11,7 +12,8 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "run_at": "document_end"
+      "run_at": "document_end",
+      "all_frames": true
     }
   ],
   "icons": {

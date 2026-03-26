@@ -65,6 +65,24 @@ app.whenReady().then(async () => {
     console.warn('Global shortcut CommandOrControl+Shift+H could not be registered — another app may own it.')
   }
 
+  // Clipboard hotkey — works in any app (Finder, Word, Pages, Preview, etc.)
+  // User copies text with Cmd+C then presses Cmd+Shift+S to save it to Captor
+  const { clipboard } = require('electron')
+  const clipRegistered = globalShortcut.register('CommandOrControl+Shift+S', () => {
+    const text = clipboard.readText().trim()
+    if (!text) return
+    windows.showAnnotation({
+      type: 'text-highlight',
+      highlightedText: text,
+      sourceUrl: '',
+      sourceTitle: '',
+    })
+  })
+
+  if (!clipRegistered) {
+    console.warn('Global shortcut CommandOrControl+Shift+S could not be registered.')
+  }
+
   app.on('activate', () => {
     const gw = windows.getGalleryWin()
     if (!gw || gw.isDestroyed()) {
