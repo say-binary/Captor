@@ -74,50 +74,33 @@ app.whenReady().then(async () => {
 
   const clipRegistered = globalShortcut.register('CommandOrControl+Shift+S', () => {
     if (process.platform === 'darwin') {
-      // Check Accessibility permission first — needed to send keystrokes
-      const hasAccess = systemPreferences.isTrustedAccessibilityClient(false)
-      if (!hasAccess) {
-        // Prompt once — this opens System Settings to the right pane
-        systemPreferences.isTrustedAccessibilityClient(true)
-        dialog.showMessageBox({
-          type: 'info',
-          title: 'Accessibility Permission Required',
-          message: 'Captor needs Accessibility access to capture selected text.\n\n1. In System Settings → Privacy & Security → Accessibility\n2. Add and enable "Electron"\n3. Restart Captor',
-          buttons: ['OK'],
-        })
-        return
-      }
-
       const prevClipboard = clipboard.readText()
 
-      // Get the frontmost app name and send Cmd+C to it — all in one script
-      // so there's no race between getting the name and sending the key.
-      // globalShortcut fires before Electron steals focus, but osascript
-      // launch takes ~50ms so we pass the app name via a pre-query.
-      execFile('osascript', ['-e',
-        'tell application "System Events" to get name of first process whose frontmost is true'
-      ], (err, frontApp) => {
-        if (err || !frontApp) return
-        const appName = frontApp.trim()
+      // Single atomic AppleScript: get frontmost app name then send Cmd+C to it.
+      // Must be one script — two separate execFile calls would race because
+      // osascript launch (~50ms) lets Electron steal frontmost between them.
+      const script = [
+        'tell application "System Events"',
+        '  set t to name of first process whose frontmost is true',
+        '  tell process t to keystroke "c" using command down',
+        'end tell',
+      ].join('\n')
 
-        execFile('osascript', ['-e',
-          `tell application "System Events" to tell process "${appName}" to keystroke "c" using command down`
-        ], (err2) => {
-          if (err2) {
-            console.error('Keystroke failed:', err2.message)
-            return
-          }
-          setTimeout(() => {
-            const text = clipboard.readText().trim()
-            if (!text || text === prevClipboard.trim()) return
-            windows.showAnnotation({
-              type: 'text-highlight',
-              highlightedText: text,
-              sourceUrl: '',
-              sourceTitle: '',
-            })
-          }, 200)
-        })
+      execFile('osascript', ['-e', script], (err) => {
+        if (err) {
+          console.error('AppleScript error:', err.message)
+          return
+        }
+        setTimeout(() => {
+          const text = clipboard.readText().trim()
+          if (!text || text === prevClipboard.trim()) return
+          windows.showAnnotation({
+            type: 'text-highlight',
+            highlightedText: text,
+            sourceUrl: '',
+            sourceTitle: '',
+          })
+        }, 200)
       })
     } else {
       const text = clipboard.readText().trim()
