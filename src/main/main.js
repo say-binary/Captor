@@ -1,9 +1,51 @@
 const { app, globalShortcut, systemPreferences, dialog, shell } = require('electron')
+const net = require('net')
 const windows = require('./windows')
 const ipcHandlers = require('./ipc-handlers')
 
 // Suppress macOS audio capture warning (safe on all platforms)
 app.commandLine.appendSwitch('disable-features', 'MacCatapLoopbackAudioForScreenShare')
+
+// ── TCP server for Chrome extension native host ────────────
+const NATIVE_HOST_PORT = 34523
+
+function startNativeHostServer() {
+  const server = net.createServer((socket) => {
+    let buf = ''
+    socket.on('data', (chunk) => {
+      buf += chunk.toString()
+      const lines = buf.split('\n')
+      buf = lines.pop() // keep incomplete last line
+      for (const line of lines) {
+        if (!line.trim()) continue
+        try {
+          const msg = JSON.parse(line)
+          if (msg.type === 'SAVE_HIGHLIGHT') {
+            const data = {
+              type: 'text-highlight',
+              highlightedText: msg.highlightedText || '',
+              sourceUrl: msg.sourceUrl || '',
+              sourceTitle: msg.sourceTitle || '',
+            }
+            windows.showAnnotation(data)
+            socket.write(JSON.stringify({ ok: true }) + '\n')
+          }
+        } catch (e) {
+          console.error('Native host parse error:', e)
+        }
+      }
+    })
+    socket.on('error', () => {})
+  })
+
+  server.listen(NATIVE_HOST_PORT, '127.0.0.1', () => {
+    console.log(`Captor native host server listening on port ${NATIVE_HOST_PORT}`)
+  })
+
+  server.on('error', (err) => {
+    console.error('Native host server error:', err)
+  })
+}
 
 app.whenReady().then(async () => {
   // Create all windows first so the app is immediately usable
@@ -13,6 +55,7 @@ app.whenReady().then(async () => {
   windows.createAnnotationWindow()
 
   ipcHandlers.register()
+  startNativeHostServer()
 
   const registered = globalShortcut.register('CommandOrControl+Shift+H', () => {
     windows.triggerCapture()

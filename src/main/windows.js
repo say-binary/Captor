@@ -1,5 +1,6 @@
 const { BrowserWindow, screen } = require('electron')
 const path = require('path')
+const storage = require('./storage')
 
 const preload = path.join(__dirname, '../renderer/preload.js')
 
@@ -29,7 +30,6 @@ function createGalleryWindow() {
 }
 
 function createOverlayWindow() {
-  // Use primary display size; will be repositioned to the active display on show
   const { width, height } = screen.getPrimaryDisplay().bounds
 
   overlayWin = new BrowserWindow({
@@ -54,9 +54,7 @@ function createOverlayWindow() {
     },
   })
   overlayWin.loadFile(path.join(__dirname, '../renderer/overlay/overlay.html'))
-  // 'screen-saver' level puts it above everything including full-screen apps
   overlayWin.setAlwaysOnTop(true, 'screen-saver')
-  // visibleOnAllWorkspaces makes it appear on every Space / desktop
   overlayWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   overlayWin.on('closed', () => { overlayWin = null })
   return overlayWin
@@ -65,11 +63,16 @@ function createOverlayWindow() {
 function createFloatingButtonWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
 
+  // Restore persisted position or default to bottom-right
+  const saved = storage.getButtonPosition()
+  const x = saved ? saved.x : width - 72
+  const y = saved ? saved.y : height - 72
+
   floatingBtnWin = new BrowserWindow({
     width: 52,
     height: 52,
-    x: width - 72,
-    y: height - 72,
+    x,
+    y,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
@@ -89,6 +92,13 @@ function createFloatingButtonWindow() {
   )
   floatingBtnWin.setAlwaysOnTop(true, 'floating')
   floatingBtnWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
+
+  // Persist position whenever the user stops moving the window
+  floatingBtnWin.on('moved', () => {
+    const [wx, wy] = floatingBtnWin.getPosition()
+    storage.saveButtonPosition({ x: wx, y: wy })
+  })
+
   floatingBtnWin.on('closed', () => { floatingBtnWin = null })
   return floatingBtnWin
 }
@@ -96,7 +106,7 @@ function createFloatingButtonWindow() {
 function createAnnotationWindow() {
   annotationWin = new BrowserWindow({
     width: 520,
-    height: 560,
+    height: 440,
     frame: true,
     alwaysOnTop: true,
     resizable: false,
@@ -120,13 +130,11 @@ function createAnnotationWindow() {
 function showOverlay() {
   if (!overlayWin) createOverlayWindow()
 
-  // Position overlay over the display containing the cursor
   const cursorPoint = screen.getCursorScreenPoint()
   const display = screen.getDisplayNearestPoint(cursorPoint)
   const { x, y, width, height } = display.bounds
 
   overlayWin.setBounds({ x, y, width, height })
-  // Re-apply after setBounds — macOS can reset these on window move
   overlayWin.setAlwaysOnTop(true, 'screen-saver')
   overlayWin.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true })
   overlayWin.show()
@@ -141,7 +149,6 @@ function showAnnotation(data) {
   if (!annotationWin) createAnnotationWindow()
   annotationWin.show()
   annotationWin.focus()
-  // Wait for renderer to be ready before sending
   if (annotationWin.webContents.isLoading()) {
     annotationWin.webContents.once('did-finish-load', () => {
       annotationWin.webContents.send('show-annotation', data)
@@ -161,6 +168,14 @@ function refreshGallery(entry) {
   }
 }
 
+function broadcastFolderChanged(folderPath) {
+  for (const win of [galleryWin, annotationWin]) {
+    if (win && !win.isDestroyed()) {
+      win.webContents.send('folder-changed', { folderPath })
+    }
+  }
+}
+
 function triggerCapture() {
   showOverlay()
 }
@@ -175,6 +190,7 @@ module.exports = {
   showAnnotation,
   hideAnnotation,
   refreshGallery,
+  broadcastFolderChanged,
   triggerCapture,
   getAnnotationWin: () => annotationWin,
   getGalleryWin: () => galleryWin,

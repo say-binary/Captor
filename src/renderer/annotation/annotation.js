@@ -3,23 +3,23 @@ let currentCapture = null
 window.captorAPI.onShowAnnotation((data) => {
   currentCapture = data
 
-  document.getElementById('preview').src = data.dataURL
-  document.getElementById('note').value = ''
-  document.getElementById('tags').value = ''
+  const isText = data.type === 'text-highlight'
 
-  // Show OCR section if text was extracted
-  const ocrSection = document.getElementById('ocrSection')
-  const extractedTextEl = document.getElementById('extractedText')
+  // Toggle which preview is visible
+  document.getElementById('imgPreviewWrap').style.display = isText ? 'none' : 'flex'
+  document.getElementById('textPreviewWrap').style.display = isText ? 'flex' : 'none'
 
-  if (data.extractedText && data.extractedText.trim()) {
-    extractedTextEl.value = data.extractedText
-    ocrSection.style.display = 'flex'
+  if (isText) {
+    document.getElementById('textPreview').textContent = data.highlightedText || ''
+    const srcEl = document.getElementById('sourceUrlPreview')
+    srcEl.textContent = data.sourceUrl || ''
+    srcEl.title = data.sourceUrl || ''
   } else {
-    extractedTextEl.value = ''
-    ocrSection.style.display = 'none'
+    document.getElementById('preview').src = data.dataURL || ''
   }
 
-  // Auto-focus note field
+  document.getElementById('note').value = ''
+  document.getElementById('tags').value = ''
   setTimeout(() => document.getElementById('note').focus(), 80)
 })
 
@@ -32,17 +32,20 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
     .split(',')
     .map((t) => t.trim().toLowerCase())
     .filter(Boolean)
-  const extractedText = document.getElementById('extractedText').value.trim()
+
+  const id = currentCapture.id || Date.now().toString()
 
   await window.captorAPI.saveHighlight({
-    id: currentCapture.id,
-    filePath: currentCapture.filePath,
-    timestamp: currentCapture.timestamp,
-    width: currentCapture.width,
-    height: currentCapture.height,
+    id,
+    filePath: currentCapture.filePath || '',
+    timestamp: currentCapture.timestamp || parseInt(id),
+    width: currentCapture.width || 0,
+    height: currentCapture.height || 0,
     note,
     tags,
-    extractedText,
+    highlightedText: currentCapture.highlightedText || '',
+    sourceUrl: currentCapture.sourceUrl || '',
+    type: currentCapture.type || 'screenshot',
   })
 
   currentCapture = null
@@ -50,13 +53,13 @@ document.getElementById('saveBtn').addEventListener('click', async () => {
 
 document.getElementById('cancelBtn').addEventListener('click', () => {
   currentCapture = null
-  window.captorAPI.cancelCapture()
+  window.captorAPI.cancelAnnotation()
 })
 
 window.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     currentCapture = null
-    window.captorAPI.cancelCapture()
+    window.captorAPI.cancelAnnotation()
   }
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
     document.getElementById('saveBtn').click()

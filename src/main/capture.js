@@ -1,33 +1,13 @@
-const { desktopCapturer, screen, app } = require('electron')
+const { desktopCapturer, screen } = require('electron')
 const fs = require('fs')
 const path = require('path')
-const { execFile } = require('child_process')
 const storage = require('./storage')
-
-function runOCR(filePath) {
-  return new Promise((resolve) => {
-    // Resolve the helper path relative to the app — works both in dev and packaged
-    const helperPath = app.isPackaged
-      ? path.join(process.resourcesPath, 'helpers', 'ocr')
-      : path.join(__dirname, '../../helpers/ocr')
-
-    execFile(helperPath, [filePath], { timeout: 10000 }, (err, stdout) => {
-      if (err) {
-        console.warn('OCR failed:', err.message)
-        resolve('')
-        return
-      }
-      resolve(stdout.trim())
-    })
-  })
-}
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 async function takeScreenshot(rect) {
-  // Give OS time to repaint after overlay hides
   await delay(100)
 
   const pt = { x: rect.x, y: rect.y }
@@ -43,7 +23,6 @@ async function takeScreenshot(rect) {
     },
   })
 
-  // Match source to the correct display
   const source =
     sources.find((s) => s.display_id === String(display.id)) || sources[0]
 
@@ -51,7 +30,6 @@ async function takeScreenshot(rect) {
 
   const full = source.thumbnail
 
-  // Adjust rect to be display-relative and account for DPI scaling
   const cropRect = {
     x: Math.round((rect.x - display.bounds.x) * scaleFactor),
     y: Math.round((rect.y - display.bounds.y) * scaleFactor),
@@ -59,7 +37,6 @@ async function takeScreenshot(rect) {
     height: Math.round(rect.height * scaleFactor),
   }
 
-  // Clamp to image bounds
   const imgSize = full.getSize()
   cropRect.x = Math.max(0, Math.min(cropRect.x, imgSize.width - 1))
   cropRect.y = Math.max(0, Math.min(cropRect.y, imgSize.height - 1))
@@ -73,15 +50,12 @@ async function takeScreenshot(rect) {
   const cropped = full.crop(cropRect)
 
   const id = Date.now().toString()
-  const filePath = path.join(storage.getScreenshotsDir(), `${id}.png`)
+  const screenshotsDir = storage.getScreenshotsDir()
+  const filePath = path.join(screenshotsDir, `${id}.png`)
   fs.writeFileSync(filePath, cropped.toPNG())
 
-  // Produce a 480px-wide preview thumbnail as dataURL for the annotation window
   const previewWidth = Math.min(480, cropRect.width)
   const dataURL = cropped.resize({ width: previewWidth }).toDataURL()
-
-  // Run OCR on the saved PNG (non-blocking via Promise.race with a fallback)
-  const extractedText = await runOCR(filePath)
 
   return {
     id,
@@ -90,7 +64,7 @@ async function takeScreenshot(rect) {
     timestamp: parseInt(id),
     width: rect.width,
     height: rect.height,
-    extractedText,
+    type: 'screenshot',
   }
 }
 

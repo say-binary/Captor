@@ -9,11 +9,23 @@ contextBridge.exposeInMainWorld('captorAPI', {
   // Annotation flow
   onShowAnnotation: (cb) => ipcRenderer.on('show-annotation', (_, data) => cb(data)),
   saveHighlight: (data) => ipcRenderer.invoke('save-highlight', data),
+  cancelAnnotation: () => ipcRenderer.send('cancel-annotation'),
 
   // Gallery
   loadHighlights: () => ipcRenderer.invoke('load-highlights'),
   getThumbnailData: (filePath) => ipcRenderer.invoke('get-thumbnail-data', filePath),
-
-  // Gallery refresh event
   onHighlightSaved: (cb) => ipcRenderer.on('highlight-saved', (_, entry) => cb(entry)),
+
+  // Folder management
+  chooseFolder: () => ipcRenderer.invoke('choose-folder'),
+  getActiveFolder: () => ipcRenderer.invoke('get-active-folder'),
+  setActiveFolder: (folderPath) => ipcRenderer.invoke('set-active-folder', folderPath),
+  getFolderTree: (folderPath) => ipcRenderer.invoke('get-folder-tree', folderPath),
+  onFolderChanged: (cb) => ipcRenderer.on('folder-changed', (_, data) => cb(data)),
+
+  // Floating button position persistence
+  saveButtonPosition: (pos) => ipcRenderer.send('save-button-position', pos),
+
+  // Chrome extension / text highlight
+  onTextHighlight: (cb) => ipcRenderer.on('text-highlight', (_, data) => cb(data)),
 })

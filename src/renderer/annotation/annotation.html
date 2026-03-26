@@ -8,21 +8,20 @@
 </head>
 <body>
   <div class="container">
-    <div class="preview-wrap">
+    <!-- Screenshot preview -->
+    <div id="imgPreviewWrap" class="preview-wrap">
       <img id="preview" alt="Captured highlight" />
     </div>
+    <!-- Text highlight preview -->
+    <div id="textPreviewWrap" class="text-preview-wrap" style="display:none">
+      <div class="text-preview-label">Selected Text</div>
+      <blockquote id="textPreview" class="text-preview"></blockquote>
+      <div id="sourceUrlPreview" class="source-url-preview"></div>
+    </div>
+
     <div class="form">
-
-      <div id="ocrSection" class="ocr-section" style="display:none">
-        <div class="ocr-header">
-          <label>Extracted Text</label>
-          <span id="ocrBadge" class="ocr-badge">OCR</span>
-        </div>
-        <textarea id="extractedText" class="ocr-textarea" placeholder="No text detected" rows="4" spellcheck="true"></textarea>
-      </div>
-
       <label for="note">Note</label>
-      <textarea id="note" placeholder="What is this about?" rows="2"></textarea>
+      <textarea id="note" placeholder="What is this about?" rows="3"></textarea>
 
       <label for="tags">Tags <span class="hint">(comma-separated)</span></label>
       <input id="tags" type="text" placeholder="e.g. ux, pricing, inspiration" />

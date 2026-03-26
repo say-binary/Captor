@@ -1,16 +1,12 @@
-const { ipcMain } = require('electron')
+const { ipcMain, dialog } = require('electron')
 const windows = require('./windows')
 const capture = require('./capture')
 const storage = require('./storage')
-const fs = require('fs')
 
 function register() {
-  // Floating button or hotkey triggers the overlay
-  ipcMain.on('start-capture', () => {
-    windows.showOverlay()
-  })
+  // ── Capture flow ──────────────────────────────────────
+  ipcMain.on('start-capture', () => windows.showOverlay())
 
-  // Overlay sends final selection rectangle
   ipcMain.handle('selection-complete', async (event, rect) => {
     windows.hideOverlay()
     try {
@@ -23,28 +19,64 @@ function register() {
     }
   })
 
-  // Cancel overlay (Esc)
-  ipcMain.on('cancel-capture', () => {
-    windows.hideOverlay()
-  })
+  ipcMain.on('cancel-capture', () => windows.hideOverlay())
 
-  // Annotation form submits note + tags + (optionally edited) extracted text
-  ipcMain.handle('save-highlight', (event, { id, filePath, timestamp, width, height, note, tags, extractedText }) => {
-    const entry = { id, filePath, timestamp, width, height, note, tags, extractedText: extractedText || '' }
+  // ── Annotation flow ───────────────────────────────────
+  ipcMain.on('cancel-annotation', () => windows.hideAnnotation())
+
+  ipcMain.handle('save-highlight', (event, data) => {
+    const { id, filePath, timestamp, width, height, note, tags, highlightedText, sourceUrl, type } = data
+    const entry = {
+      id,
+      filePath: filePath || '',
+      timestamp,
+      width: width || 0,
+      height: height || 0,
+      note: note || '',
+      tags: tags || [],
+      highlightedText: highlightedText || '',
+      sourceUrl: sourceUrl || '',
+      type: type || 'screenshot',
+    }
     storage.appendEntry(entry)
     windows.hideAnnotation()
     windows.refreshGallery(entry)
     return { ok: true }
   })
 
-  // Gallery requests full index
-  ipcMain.handle('load-highlights', () => {
-    return storage.loadIndex()
+  // ── Gallery ───────────────────────────────────────────
+  ipcMain.handle('load-highlights', () => storage.loadIndex())
+
+  ipcMain.handle('get-thumbnail-data', (event, filePath) => storage.getThumbnailData(filePath))
+
+  // ── Folder management ─────────────────────────────────
+  ipcMain.handle('choose-folder', async () => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Choose folder for highlights',
+    })
+    if (canceled || !filePaths.length) return null
+    const folderPath = filePaths[0]
+    storage.setActiveFolder(folderPath)
+    windows.broadcastFolderChanged(folderPath)
+    return folderPath
   })
 
-  // Gallery requests a PNG as base64 dataURL
-  ipcMain.handle('get-thumbnail-data', (event, filePath) => {
-    return storage.getThumbnailData(filePath)
+  ipcMain.handle('get-active-folder', () => storage.getActiveFolder())
+
+  ipcMain.handle('set-active-folder', (event, folderPath) => {
+    storage.setActiveFolder(folderPath)
+    windows.broadcastFolderChanged(folderPath)
+    return folderPath
+  })
+
+  ipcMain.handle('get-folder-tree', (event, folderPath) => {
+    return storage.getFolderTree(folderPath)
+  })
+
+  // ── Floating button position ──────────────────────────
+  ipcMain.on('save-button-position', (event, pos) => {
+    storage.saveButtonPosition(pos)
   })
 }
 
