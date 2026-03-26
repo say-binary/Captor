@@ -74,32 +74,52 @@ app.whenReady().then(async () => {
 
   const clipRegistered = globalShortcut.register('CommandOrControl+Shift+S', () => {
     if (process.platform === 'darwin') {
-      // Save current clipboard so we can detect if it changed
+      // Check Accessibility permission first — needed to send keystrokes
+      const hasAccess = systemPreferences.isTrustedAccessibilityClient(false)
+      if (!hasAccess) {
+        // Prompt once — this opens System Settings to the right pane
+        systemPreferences.isTrustedAccessibilityClient(true)
+        dialog.showMessageBox({
+          type: 'info',
+          title: 'Accessibility Permission Required',
+          message: 'Captor needs Accessibility access to capture selected text.\n\n1. In System Settings → Privacy & Security → Accessibility\n2. Add and enable "Electron"\n3. Restart Captor',
+          buttons: ['OK'],
+        })
+        return
+      }
+
       const prevClipboard = clipboard.readText()
 
-      // Use osascript to send Cmd+C to the previously focused application
-      execFile('osascript', ['-e', 'tell application "System Events" to keystroke "c" using command down'], (err) => {
-        if (err) {
-          console.error('AppleScript copy failed:', err.message)
-          return
-        }
-        // Wait for the clipboard to be populated by the target app
-        setTimeout(() => {
-          const text = clipboard.readText().trim()
-          if (!text || text === prevClipboard.trim()) {
-            // Nothing new was selected — silently ignore
+      // Get the frontmost app name and send Cmd+C to it — all in one script
+      // so there's no race between getting the name and sending the key.
+      // globalShortcut fires before Electron steals focus, but osascript
+      // launch takes ~50ms so we pass the app name via a pre-query.
+      execFile('osascript', ['-e',
+        'tell application "System Events" to get name of first process whose frontmost is true'
+      ], (err, frontApp) => {
+        if (err || !frontApp) return
+        const appName = frontApp.trim()
+
+        execFile('osascript', ['-e',
+          `tell application "System Events" to tell process "${appName}" to keystroke "c" using command down`
+        ], (err2) => {
+          if (err2) {
+            console.error('Keystroke failed:', err2.message)
             return
           }
-          windows.showAnnotation({
-            type: 'text-highlight',
-            highlightedText: text,
-            sourceUrl: '',
-            sourceTitle: '',
-          })
-        }, 150)
+          setTimeout(() => {
+            const text = clipboard.readText().trim()
+            if (!text || text === prevClipboard.trim()) return
+            windows.showAnnotation({
+              type: 'text-highlight',
+              highlightedText: text,
+              sourceUrl: '',
+              sourceTitle: '',
+            })
+          }, 200)
+        })
       })
     } else {
-      // Windows/Linux: just read clipboard (user must Ctrl+C first)
       const text = clipboard.readText().trim()
       if (!text) return
       windows.showAnnotation({
