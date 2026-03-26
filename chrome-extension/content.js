@@ -1,124 +1,116 @@
-// Captor content script — inject a save button when text is selected
+// Captor content script — show a save button when text is selected
 
 let saveBtn = null
 let hideTimer = null
-let justShown = false  // suppress selectionchange-triggered hides right after mouseup
-let lockedText = ''    // text that was selected when button was shown
+let lockedText = ''  // selection captured at mouseup time
 
+// ── Button creation ────────────────────────────────────
 function createSaveButton() {
   const btn = document.createElement('button')
   btn.id = '__captor_save_btn__'
   btn.textContent = '📌 Save to Captor'
   btn.style.cssText = [
-    'position: fixed',
-    'z-index: 2147483647',
-    'padding: 6px 12px',
-    'background: linear-gradient(135deg, #6c63ff, #4ecdc4)',
-    'color: #fff',
-    'border: none',
-    'border-radius: 20px',
-    'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    'font-size: 13px',
-    'font-weight: 600',
-    'cursor: pointer',
-    'box-shadow: 0 4px 16px rgba(108,99,255,0.45)',
-    'transition: opacity 0.15s, transform 0.1s',
-    'user-select: none',
-    'pointer-events: auto',
+    'all:unset',                        // reset all page styles
+    'position:fixed',
+    'z-index:2147483647',
+    'padding:7px 14px',
+    'background:linear-gradient(135deg,#6c63ff,#4ecdc4)',
+    'color:#fff',
+    'border-radius:20px',
+    'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+    'font-size:13px',
+    'font-weight:600',
+    'cursor:pointer',
+    'box-shadow:0 4px 16px rgba(108,99,255,0.5)',
+    'user-select:none',
+    'pointer-events:auto',
+    'white-space:nowrap',
+    'display:none',
   ].join(';')
 
-  btn.addEventListener('mouseenter', () => {
-    clearTimeout(hideTimer)
-    btn.style.opacity = '1'
-    btn.style.transform = 'scale(1.05)'
-  })
-  btn.addEventListener('mouseleave', () => {
-    btn.style.transform = 'scale(1)'
-    scheduleHide()
-  })
   btn.addEventListener('mousedown', (e) => {
-    e.preventDefault() // Don't deselect text
+    e.preventDefault()   // crucial: stops the click from collapsing the selection
+    e.stopPropagation()
   })
+
   btn.addEventListener('click', (e) => {
     e.preventDefault()
     e.stopPropagation()
     sendHighlight()
   })
 
-  document.body.appendChild(btn)
+  document.documentElement.appendChild(btn)
   return btn
 }
 
-function positionButton(x, y) {
+function getButton() {
   if (!saveBtn) saveBtn = createSaveButton()
-  // Place above the cursor; keep inside viewport
-  const btnW = 160
+  return saveBtn
+}
+
+// ── Show / hide ────────────────────────────────────────
+function showButton(x, y) {
+  const btn = getButton()
+  clearTimeout(hideTimer)
+
+  const btnW = 170
   const btnH = 36
   const margin = 8
   let left = x - btnW / 2
-  let top = y - btnH - margin
+  let top  = y - btnH - margin
 
-  left = Math.max(margin, Math.min(left, window.innerWidth - btnW - margin))
-  if (top < margin) top = y + margin
+  left = Math.max(margin, Math.min(left, window.innerWidth  - btnW - margin))
+  if (top < margin) top = y + margin + 4
 
-  saveBtn.style.left = `${left}px`
-  saveBtn.style.top = `${top}px`
-  saveBtn.style.display = 'block'
-  saveBtn.style.opacity = '1'
+  btn.style.left    = left + 'px'
+  btn.style.top     = top  + 'px'
+  btn.style.display = 'block'
+
+  // Auto-hide after 5s if user doesn't interact
+  hideTimer = setTimeout(hideButton, 5000)
 }
 
 function hideButton() {
-  if (saveBtn) {
-    saveBtn.style.display = 'none'
-  }
-}
-
-function scheduleHide(delay = 1800) {
   clearTimeout(hideTimer)
-  hideTimer = setTimeout(hideButton, delay)
+  if (saveBtn) saveBtn.style.display = 'none'
+  lockedText = ''
 }
 
-document.addEventListener('mouseup', (e) => {
-  // Ignore clicks on our own button
-  if (e.target === saveBtn) return
+// ── Event listeners ────────────────────────────────────
 
-  // Give browser a tick to update the selection
+// Show button when user finishes a drag selection
+document.addEventListener('mouseup', (e) => {
+  // Ignore mouseup on our own button (handled by click)
+  if (saveBtn && (e.target === saveBtn || saveBtn.contains(e.target))) return
+
+  // Small delay so browser finalises the selection
   setTimeout(() => {
     const sel = window.getSelection()
     const text = sel ? sel.toString().trim() : ''
-    if (text.length > 0) {
-      // Don't reposition if the same text is still selected and button is visible
-      if (text === lockedText && saveBtn && saveBtn.style.display !== 'none') return
 
+    if (text.length > 0) {
       lockedText = text
-      positionButton(e.clientX, e.clientY)
-      justShown = true
-      setTimeout(() => { justShown = false }, 500)
-      scheduleHide(4000)
+      showButton(e.clientX, e.clientY)
     } else {
-      lockedText = ''
       hideButton()
     }
-  }, 10)
+  }, 20)
 })
 
-document.addEventListener('selectionchange', () => {
-  if (justShown) return // don't fight with mouseup
-  const sel = window.getSelection()
-  if (!sel || sel.toString().trim().length === 0) {
-    // Only hide if the button is currently visible
-    if (saveBtn && saveBtn.style.display !== 'none') {
-      scheduleHide(400)
+// Hide button when user clicks anywhere that isn't our button
+document.addEventListener('mousedown', (e) => {
+  if (saveBtn && saveBtn.style.display !== 'none') {
+    if (e.target !== saveBtn && !saveBtn.contains(e.target)) {
+      hideButton()
     }
   }
 })
 
+// ── Send to Captor ─────────────────────────────────────
 function sendHighlight() {
-  // Use lockedText first (most reliable), fall back to live selection
-  const text = lockedText || (window.getSelection() ? window.getSelection().toString().trim() : '')
+  const text = lockedText
   if (!text) return
 
-  lockedText = ''
   hideButton()
 
   chrome.runtime.sendMessage(
@@ -129,32 +121,38 @@ function sendHighlight() {
       sourceTitle: document.title,
     },
     (response) => {
-      if (chrome.runtime.lastError || (response && !response.ok)) {
-        showToast('Captor app is not running. Launch it first.')
+      if (chrome.runtime.lastError || !response || !response.ok) {
+        const err = chrome.runtime.lastError
+          ? chrome.runtime.lastError.message
+          : (response && response.error) || 'unknown error'
+        showToast('Captor: ' + err)
       }
     }
   )
 }
 
+// ── Error toast ────────────────────────────────────────
 function showToast(msg) {
   const toast = document.createElement('div')
   toast.textContent = msg
   toast.style.cssText = [
-    'position: fixed',
-    'bottom: 24px',
-    'left: 50%',
-    'transform: translateX(-50%)',
-    'z-index: 2147483647',
-    'background: #2a2a3e',
-    'color: #e0e0f0',
-    'border: 1px solid rgba(255,255,255,0.12)',
-    'border-radius: 8px',
-    'padding: 10px 18px',
-    'font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
-    'font-size: 13px',
-    'box-shadow: 0 4px 20px rgba(0,0,0,0.4)',
-    'pointer-events: none',
+    'all:unset',
+    'position:fixed',
+    'bottom:24px',
+    'left:50%',
+    'transform:translateX(-50%)',
+    'z-index:2147483647',
+    'background:#2a2a3e',
+    'color:#e0e0f0',
+    'border:1px solid rgba(255,255,255,0.12)',
+    'border-radius:8px',
+    'padding:10px 18px',
+    'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif',
+    'font-size:13px',
+    'box-shadow:0 4px 20px rgba(0,0,0,0.4)',
+    'pointer-events:none',
+    'white-space:nowrap',
   ].join(';')
-  document.body.appendChild(toast)
-  setTimeout(() => toast.remove(), 3500)
+  document.documentElement.appendChild(toast)
+  setTimeout(() => toast.remove(), 4000)
 }
