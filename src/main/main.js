@@ -65,18 +65,50 @@ app.whenReady().then(async () => {
     console.warn('Global shortcut CommandOrControl+Shift+H could not be registered — another app may own it.')
   }
 
-  // Clipboard hotkey — works in any app (Finder, Word, Pages, Preview, etc.)
-  // User copies text with Cmd+C then presses Cmd+Shift+S to save it to Captor
-  const { clipboard } = require('electron')
+  // Text highlight hotkey — Cmd+Shift+S
+  // Triggers Cmd+C in the previously focused app (via AppleScript), then reads
+  // the clipboard. Works in Chrome, Word, Pages, Preview, Safari, PDFs, etc.
+  // No need to copy first — just select text and press Cmd+Shift+S.
+  const { clipboard, nativeTheme } = require('electron')
+  const { execFile } = require('child_process')
+
   const clipRegistered = globalShortcut.register('CommandOrControl+Shift+S', () => {
-    const text = clipboard.readText().trim()
-    if (!text) return
-    windows.showAnnotation({
-      type: 'text-highlight',
-      highlightedText: text,
-      sourceUrl: '',
-      sourceTitle: '',
-    })
+    if (process.platform === 'darwin') {
+      // Save current clipboard so we can detect if it changed
+      const prevClipboard = clipboard.readText()
+
+      // Use osascript to send Cmd+C to the previously focused application
+      execFile('osascript', ['-e', 'tell application "System Events" to keystroke "c" using command down'], (err) => {
+        if (err) {
+          console.error('AppleScript copy failed:', err.message)
+          return
+        }
+        // Wait for the clipboard to be populated by the target app
+        setTimeout(() => {
+          const text = clipboard.readText().trim()
+          if (!text || text === prevClipboard.trim()) {
+            // Nothing new was selected — silently ignore
+            return
+          }
+          windows.showAnnotation({
+            type: 'text-highlight',
+            highlightedText: text,
+            sourceUrl: '',
+            sourceTitle: '',
+          })
+        }, 150)
+      })
+    } else {
+      // Windows/Linux: just read clipboard (user must Ctrl+C first)
+      const text = clipboard.readText().trim()
+      if (!text) return
+      windows.showAnnotation({
+        type: 'text-highlight',
+        highlightedText: text,
+        sourceUrl: '',
+        sourceTitle: '',
+      })
+    }
   })
 
   if (!clipRegistered) {
