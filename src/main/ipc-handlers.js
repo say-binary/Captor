@@ -49,6 +49,18 @@ function register() {
 
   ipcMain.handle('get-thumbnail-data', (event, filePath) => storage.getThumbnailData(filePath))
 
+  ipcMain.handle('update-highlight', (event, { id, fields }) => {
+    const updated = storage.updateEntry(id, fields)
+    if (updated) windows.broadcastHighlightUpdated(updated)
+    return updated || { ok: false }
+  })
+
+  ipcMain.handle('delete-highlight', (event, id) => {
+    const ok = storage.deleteEntry(id)
+    if (ok) windows.broadcastHighlightDeleted(id)
+    return { ok }
+  })
+
   // ── Folder management ─────────────────────────────────
   ipcMain.handle('choose-folder', async () => {
     const { canceled, filePaths } = await dialog.showOpenDialog({

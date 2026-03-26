@@ -71,6 +71,32 @@ function appendEntry(entry) {
   fs.renameSync(tmp, getIndexPath())
 }
 
+function updateEntry(id, fields) {
+  const index = loadIndex()
+  const i = index.findIndex((e) => e.id === id)
+  if (i === -1) return false
+  index[i] = { ...index[i], ...fields }
+  const tmp = getIndexPath() + '.tmp'
+  fs.writeFileSync(tmp, JSON.stringify(index, null, 2), 'utf8')
+  fs.renameSync(tmp, getIndexPath())
+  return index[i]
+}
+
+function deleteEntry(id) {
+  const index = loadIndex()
+  const i = index.findIndex((e) => e.id === id)
+  if (i === -1) return false
+  const [removed] = index.splice(i, 1)
+  // Delete associated PNG if it exists
+  if (removed.filePath && fs.existsSync(removed.filePath)) {
+    try { fs.unlinkSync(removed.filePath) } catch { /* ignore */ }
+  }
+  const tmp = getIndexPath() + '.tmp'
+  fs.writeFileSync(tmp, JSON.stringify(index, null, 2), 'utf8')
+  fs.renameSync(tmp, getIndexPath())
+  return true
+}
+
 // ── Thumbnail data URL ────────────────────────────────────────────────────
 function getThumbnailData(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return null
@@ -104,6 +130,8 @@ module.exports = {
   getScreenshotsDir,
   loadIndex,
   appendEntry,
+  updateEntry,
+  deleteEntry,
   getThumbnailData,
   getActiveFolder,
   setActiveFolder,

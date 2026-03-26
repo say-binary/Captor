@@ -2,17 +2,14 @@ let allHighlights = []
 let activeTag = '__all__'
 let searchQuery = ''
 let sortOrder = 'newest'
+let lightboxCurrentId = null  // track which entry is open in the edit panel
 
 // ── Init ───────────────────────────────────────────────
 async function init() {
-  // Load active folder and update label
   const folderPath = await window.captorAPI.getActiveFolder()
   updateFolderLabel(folderPath)
-  if (folderPath) {
-    renderFolderTree(folderPath)
-  }
+  if (folderPath) renderFolderTree(folderPath)
 
-  // Load highlights
   allHighlights = await window.captorAPI.loadHighlights()
   renderTagSidebar()
   renderGrid()
@@ -27,11 +24,24 @@ window.captorAPI.onHighlightSaved((entry) => {
   renderGrid()
 })
 
-// Listen for folder changes from other windows
+// Sync edits/deletes broadcast from main process (if multiple windows ever open)
+window.captorAPI.onHighlightUpdated((entry) => {
+  const i = allHighlights.findIndex((h) => h.id === entry.id)
+  if (i !== -1) allHighlights[i] = entry
+  renderTagSidebar()
+  renderGrid()
+})
+
+window.captorAPI.onHighlightDeleted((id) => {
+  allHighlights = allHighlights.filter((h) => h.id !== id)
+  renderTagSidebar()
+  renderGrid()
+})
+
+// Listen for folder changes
 window.captorAPI.onFolderChanged(({ folderPath }) => {
   updateFolderLabel(folderPath)
   renderFolderTree(folderPath)
-  // Reload highlights from new folder
   window.captorAPI.loadHighlights().then((list) => {
     allHighlights = list
     renderTagSidebar()
@@ -43,7 +53,6 @@ window.captorAPI.onFolderChanged(({ folderPath }) => {
 function updateFolderLabel(folderPath) {
   const label = document.getElementById('activeFolderLabel')
   if (folderPath) {
-    // Show just the last path segment
     const parts = folderPath.replace(/\\/g, '/').split('/')
     label.textContent = parts[parts.length - 1] || folderPath
     label.title = folderPath
@@ -57,13 +66,10 @@ async function renderFolderTree(rootPath) {
   const treeEl = document.getElementById('folderTree')
   treeEl.innerHTML = ''
   if (!rootPath) return
-
   try {
     const tree = await window.captorAPI.getFolderTree(rootPath)
     if (tree && tree.children && tree.children.length > 0) {
-      tree.children.forEach((node) => {
-        treeEl.appendChild(buildTreeNode(node, 0))
-      })
+      tree.children.forEach((node) => treeEl.appendChild(buildTreeNode(node, 0)))
     }
   } catch (e) {
     console.error('Failed to render folder tree:', e)
@@ -78,19 +84,16 @@ function buildTreeNode(node, depth) {
   row.className = 'tree-row'
   row.style.paddingLeft = `${4 + depth * 14}px`
 
-  // Toggle arrow (only for nodes with children)
   const toggle = document.createElement('span')
   toggle.className = 'tree-toggle'
   toggle.innerHTML = node.children && node.children.length > 0 ? '&#9654;' : ''
   row.appendChild(toggle)
 
-  // Folder icon
   const icon = document.createElement('span')
   icon.className = 'tree-icon'
   icon.textContent = '📁'
   row.appendChild(icon)
 
-  // Name
   const name = document.createElement('span')
   name.className = 'tree-name'
   name.textContent = node.name
@@ -99,17 +102,12 @@ function buildTreeNode(node, depth) {
 
   wrapper.appendChild(row)
 
-  // Children container
-  let childrenEl = null
   if (node.children && node.children.length > 0) {
-    childrenEl = document.createElement('div')
+    const childrenEl = document.createElement('div')
     childrenEl.className = 'tree-children'
-    node.children.forEach((child) => {
-      childrenEl.appendChild(buildTreeNode(child, depth + 1))
-    })
+    node.children.forEach((child) => childrenEl.appendChild(buildTreeNode(child, depth + 1)))
     wrapper.appendChild(childrenEl)
 
-    // Toggle expand/collapse
     row.addEventListener('click', (e) => {
       e.stopPropagation()
       const isOpen = childrenEl.classList.toggle('open')
@@ -126,7 +124,6 @@ document.getElementById('chooseFolderBtn').addEventListener('click', async () =>
   if (folderPath) {
     updateFolderLabel(folderPath)
     renderFolderTree(folderPath)
-    // Reload highlights from new folder
     allHighlights = await window.captorAPI.loadHighlights()
     renderTagSidebar()
     renderGrid()
@@ -153,7 +150,6 @@ function getFiltered() {
   }
 
   if (sortOrder === 'oldest') list.reverse()
-
   return list
 }
 
@@ -171,15 +167,13 @@ function renderTagSidebar() {
   allBtn.textContent = 'All'
   tagList.appendChild(allBtn)
 
-  Array.from(tagSet)
-    .sort()
-    .forEach((tag) => {
-      const btn = document.createElement('button')
-      btn.className = 'tag-pill' + (activeTag === tag ? ' active' : '')
-      btn.dataset.tag = tag
-      btn.textContent = tag
-      tagList.appendChild(btn)
-    })
+  Array.from(tagSet).sort().forEach((tag) => {
+    const btn = document.createElement('button')
+    btn.className = 'tag-pill' + (activeTag === tag ? ' active' : '')
+    btn.dataset.tag = tag
+    btn.textContent = tag
+    tagList.appendChild(btn)
+  })
 }
 
 document.getElementById('tagList').addEventListener('click', (e) => {
@@ -227,14 +221,11 @@ async function buildCard(highlight) {
   let dataURL = null
 
   if (highlight.type === 'text-highlight') {
-    // Text-only card
     imgWrap.className = 'card-img-wrap text-only'
     const excerpt = document.createElement('div')
     excerpt.className = 'card-highlight-excerpt'
     excerpt.textContent = highlight.highlightedText || ''
     imgWrap.appendChild(excerpt)
-
-    // Source label below excerpt
     if (highlight.sourceUrl) {
       const src = document.createElement('div')
       src.className = 'card-source'
@@ -243,7 +234,6 @@ async function buildCard(highlight) {
       imgWrap.appendChild(src)
     }
   } else {
-    // Screenshot card
     imgWrap.className = 'card-img-wrap'
     const img = document.createElement('img')
     img.alt = highlight.note || 'Highlight'
@@ -279,17 +269,21 @@ async function buildCard(highlight) {
 
   card.appendChild(imgWrap)
   card.appendChild(body)
-
   card.addEventListener('click', () => openLightbox(highlight, dataURL))
   return card
 }
 
-// ── Lightbox ───────────────────────────────────────────
-function openLightbox(highlight, dataURL) {
-  const lb = document.getElementById('lightbox')
-  const imgEl = document.getElementById('lightboxImg')
+// ── Lightbox / Edit panel ──────────────────────────────
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none'
+  lightboxCurrentId = null
+}
 
-  // Image (only for screenshots)
+function openLightbox(highlight, dataURL) {
+  lightboxCurrentId = highlight.id
+
+  // Image
+  const imgEl = document.getElementById('lightboxImg')
   if (highlight.type !== 'text-highlight' && dataURL) {
     imgEl.src = dataURL
     imgEl.style.display = 'block'
@@ -298,51 +292,80 @@ function openLightbox(highlight, dataURL) {
     imgEl.style.display = 'none'
   }
 
-  document.getElementById('lightboxNote').textContent = highlight.note || ''
+  // Date
   document.getElementById('lightboxDate').textContent = formatDate(highlight.timestamp)
 
-  const tagsEl = document.getElementById('lightboxTags')
-  tagsEl.innerHTML = ''
-  ;(highlight.tags || []).forEach((tag) => {
-    const badge = document.createElement('span')
-    badge.className = 'tag-badge'
-    badge.textContent = tag
-    tagsEl.appendChild(badge)
-  })
-
-  // Highlighted text block
+  // Highlighted text block (text-highlight only)
   const highlightBlock = document.getElementById('lightboxHighlightBlock')
-  const highlightText = document.getElementById('lightboxHighlightText')
-  const sourceUrlEl = document.getElementById('lightboxSourceUrl')
-
-  if (highlight.highlightedText && highlight.highlightedText.trim()) {
-    highlightText.textContent = highlight.highlightedText
-    if (highlight.sourceUrl) {
-      sourceUrlEl.textContent = highlight.sourceUrl
-      sourceUrlEl.href = highlight.sourceUrl
-      sourceUrlEl.style.display = 'block'
-    } else {
-      sourceUrlEl.style.display = 'none'
-    }
+  if (highlight.type === 'text-highlight') {
+    document.getElementById('lightboxHighlightText').value = highlight.highlightedText || ''
+    document.getElementById('lightboxSourceUrl').value = highlight.sourceUrl || ''
     highlightBlock.style.display = 'block'
   } else {
     highlightBlock.style.display = 'none'
   }
 
-  lb.style.display = 'flex'
+  // Note and tags
+  document.getElementById('lightboxNote').value = highlight.note || ''
+  document.getElementById('lightboxTagsInput').value = (highlight.tags || []).join(', ')
+
+  document.getElementById('lightbox').style.display = 'flex'
 }
 
+// Save changes
+document.getElementById('lightboxSaveBtn').addEventListener('click', async () => {
+  if (!lightboxCurrentId) return
+
+  const highlight = allHighlights.find((h) => h.id === lightboxCurrentId)
+  if (!highlight) return
+
+  const fields = {
+    note: document.getElementById('lightboxNote').value.trim(),
+    tags: document.getElementById('lightboxTagsInput').value
+      .split(',').map((t) => t.trim()).filter(Boolean),
+  }
+
+  if (highlight.type === 'text-highlight') {
+    fields.highlightedText = document.getElementById('lightboxHighlightText').value.trim()
+    fields.sourceUrl = document.getElementById('lightboxSourceUrl').value.trim()
+  }
+
+  const updated = await window.captorAPI.updateHighlight(lightboxCurrentId, fields)
+  if (updated && updated.id) {
+    const i = allHighlights.findIndex((h) => h.id === updated.id)
+    if (i !== -1) allHighlights[i] = updated
+    renderTagSidebar()
+    renderGrid()
+  }
+  closeLightbox()
+})
+
+// Cancel — just close without saving
+document.getElementById('lightboxCancelBtn').addEventListener('click', closeLightbox)
+
+// Delete
+document.getElementById('lightboxDeleteBtn').addEventListener('click', async () => {
+  if (!lightboxCurrentId) return
+  const confirmed = confirm('Delete this highlight? This cannot be undone.')
+  if (!confirmed) return
+
+  await window.captorAPI.deleteHighlight(lightboxCurrentId)
+  allHighlights = allHighlights.filter((h) => h.id !== lightboxCurrentId)
+  renderTagSidebar()
+  renderGrid()
+  closeLightbox()
+})
+
+// Close on backdrop click
 document.getElementById('lightbox').addEventListener('click', (e) => {
-  if (
-    e.target.classList.contains('lightbox-backdrop') ||
-    e.target.classList.contains('lightbox-close')
-  ) {
-    document.getElementById('lightbox').style.display = 'none'
+  if (e.target.classList.contains('lightbox-backdrop') ||
+      e.target.classList.contains('lightbox-close')) {
+    closeLightbox()
   }
 })
 
 window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') document.getElementById('lightbox').style.display = 'none'
+  if (e.key === 'Escape') closeLightbox()
 })
 
 // ── Controls ───────────────────────────────────────────

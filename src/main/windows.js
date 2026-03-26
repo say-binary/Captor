@@ -176,6 +176,18 @@ function broadcastFolderChanged(folderPath) {
   }
 }
 
+function broadcastHighlightUpdated(entry) {
+  if (galleryWin && !galleryWin.isDestroyed()) {
+    galleryWin.webContents.send('highlight-updated', entry)
+  }
+}
+
+function broadcastHighlightDeleted(id) {
+  if (galleryWin && !galleryWin.isDestroyed()) {
+    galleryWin.webContents.send('highlight-deleted', id)
+  }
+}
+
 function triggerCapture() {
   showOverlay()
 }
@@ -191,6 +203,8 @@ module.exports = {
   hideAnnotation,
   refreshGallery,
   broadcastFolderChanged,
+  broadcastHighlightUpdated,
+  broadcastHighlightDeleted,
   triggerCapture,
   getAnnotationWin: () => annotationWin,
   getGalleryWin: () => galleryWin,

@@ -15,6 +15,10 @@ contextBridge.exposeInMainWorld('captorAPI', {
   loadHighlights: () => ipcRenderer.invoke('load-highlights'),
   getThumbnailData: (filePath) => ipcRenderer.invoke('get-thumbnail-data', filePath),
   onHighlightSaved: (cb) => ipcRenderer.on('highlight-saved', (_, entry) => cb(entry)),
+  updateHighlight: (id, fields) => ipcRenderer.invoke('update-highlight', { id, fields }),
+  deleteHighlight: (id) => ipcRenderer.invoke('delete-highlight', id),
+  onHighlightUpdated: (cb) => ipcRenderer.on('highlight-updated', (_, entry) => cb(entry)),
+  onHighlightDeleted: (cb) => ipcRenderer.on('highlight-deleted', (_, id) => cb(id)),
 
   // Folder management
   chooseFolder: () => ipcRenderer.invoke('choose-folder'),

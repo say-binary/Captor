@@ -204,7 +204,7 @@ kbd {
   padding: 1px 5px; border-radius: 4px; font-size: 11px;
 }
 
-/* ── Lightbox ────────────────────────────────── */
+/* ── Lightbox / Edit panel ────────────────────── */
 .lightbox {
   position: fixed; inset: 0; z-index: 1000;
   display: flex; align-items: center; justify-content: center;
@@ -216,55 +216,90 @@ kbd {
 .lightbox-content {
   position: relative; background: #1a1a2e;
   border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
-  max-width: 85vw; max-height: 85vh; overflow: hidden;
+  width: 540px; max-width: 90vw; max-height: 88vh; overflow: hidden;
   display: flex; flex-direction: column;
   box-shadow: 0 24px 80px rgba(0,0,0,0.7);
 }
+
+.lightbox-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 14px 10px; border-bottom: 1px solid rgba(255,255,255,0.06);
+  flex-shrink: 0;
+}
+.lightbox-header-actions { display: flex; align-items: center; gap: 8px; }
+
 .lightbox-close {
-  position: absolute; top: 10px; right: 12px;
-  background: rgba(255,255,255,0.1); border: none; color: #e0e0f0;
-  font-size: 20px; line-height: 1; width: 28px; height: 28px;
+  background: rgba(255,255,255,0.08); border: none; color: #e0e0f0;
+  font-size: 18px; line-height: 1; width: 26px; height: 26px;
   border-radius: 50%; cursor: pointer; display: flex;
-  align-items: center; justify-content: center; z-index: 10;
+  align-items: center; justify-content: center;
   transition: background 0.15s;
 }
-.lightbox-close:hover { background: rgba(255,255,255,0.2); }
+.lightbox-close:hover { background: rgba(255,255,255,0.18); }
 
 #lightboxImg {
-  max-width: 100%; max-height: 60vh;
+  max-width: 100%; max-height: 45vh;
   object-fit: contain; display: block; background: #0d0d1a;
+  flex-shrink: 0;
 }
-#lightboxImg:empty { display: none; }
 
 .lightbox-meta {
   padding: 14px 18px 16px; display: flex; flex-direction: column;
-  gap: 8px; max-width: 700px; overflow-y: auto; max-height: 280px;
+  gap: 4px; overflow-y: auto;
 }
 
-.lightbox-highlight-block {
-  background: rgba(108,99,255,0.07);
-  border: 1px solid rgba(108,99,255,0.2);
-  border-radius: 8px; padding: 10px 14px;
-}
-.lightbox-highlight-label {
+.lightbox-field-label {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.08em; color: #a09af0; margin-bottom: 6px;
-  display: flex; align-items: center; gap: 5px;
+  letter-spacing: 0.08em; color: #5a5a7a; margin-bottom: 4px;
 }
-.lightbox-highlight-text {
-  font-size: 13px; color: #c8d8e8; line-height: 1.6;
-  font-style: italic; border-left: 3px solid #6c63ff;
-  padding-left: 10px; margin: 0;
-  white-space: pre-wrap; word-break: break-word;
-}
-.lightbox-source-url {
-  font-size: 11px; color: #6c63ff; margin-top: 6px;
-  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  text-decoration: none;
-}
-.lightbox-source-url:hover { text-decoration: underline; }
+.lightbox-field-hint { font-weight: 400; text-transform: none; letter-spacing: 0; color: #44445a; }
 
-.lightbox-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.lightbox-textarea {
+  width: 100%; background: #13131f;
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+  color: #e0e0f0; font-family: inherit; font-size: 13px;
+  line-height: 1.5; padding: 9px 11px; resize: vertical;
+  outline: none; transition: border-color 0.15s;
+}
+.lightbox-textarea:focus { border-color: #6c63ff; }
+
+.lightbox-input {
+  width: 100%; background: #13131f;
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+  color: #e0e0f0; font-family: inherit; font-size: 13px;
+  padding: 8px 11px; outline: none; transition: border-color 0.15s;
+}
+.lightbox-input:focus { border-color: #6c63ff; }
+
+.lightbox-actions {
+  display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px;
+}
+
+.btn-primary {
+  background: #6c63ff; border: none; color: #fff;
+  font-family: inherit; font-size: 13px; font-weight: 600;
+  padding: 8px 18px; border-radius: 7px; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-primary:hover { background: #7c74ff; }
+
+.btn-secondary {
+  background: rgba(255,255,255,0.07); border: none; color: #9999bb;
+  font-family: inherit; font-size: 13px;
+  padding: 8px 14px; border-radius: 7px; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.12); }
+
+.btn-delete {
+  display: flex; align-items: center; gap: 5px;
+  background: rgba(220,53,69,0.12); border: none; color: #e57373;
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  padding: 5px 10px; border-radius: 6px; cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-delete:hover { background: rgba(220,53,69,0.25); }
+
 .lightbox-date { font-size: 11px; color: #44445a; }
 
 /* Scrollbars */
