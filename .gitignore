@@ -6,3 +6,5 @@ helpers/ocr
 *.pptx
 *.py
 *.pyc
+helpers/copy_selection
+helpers/ocr

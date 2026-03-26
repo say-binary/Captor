@@ -75,20 +75,13 @@ app.whenReady().then(async () => {
   const clipRegistered = globalShortcut.register('CommandOrControl+Shift+S', () => {
     if (process.platform === 'darwin') {
       const prevClipboard = clipboard.readText()
+      const helperPath = require('path').join(__dirname, '../../helpers/copy_selection')
 
-      // Single atomic AppleScript: get frontmost app name then send Cmd+C to it.
-      // Must be one script — two separate execFile calls would race because
-      // osascript launch (~50ms) lets Electron steal frontmost between them.
-      const script = [
-        'tell application "System Events"',
-        '  set t to name of first process whose frontmost is true',
-        '  tell process t to keystroke "c" using command down',
-        'end tell',
-      ].join('\n')
-
-      execFile('osascript', ['-e', script], (err) => {
+      // Use compiled Swift helper that posts CGEvent at HID level —
+      // requires NO Accessibility permission, works in any app.
+      execFile(helperPath, [], (err) => {
         if (err) {
-          console.error('AppleScript error:', err.message)
+          console.error('copy_selection helper error:', err.message)
           return
         }
         setTimeout(() => {
