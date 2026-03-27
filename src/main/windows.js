@@ -145,20 +145,29 @@ function hideOverlay() {
   if (overlayWin) overlayWin.hide()
 }
 
+let _annotationBusy = false
+
 function showAnnotation(data) {
+  // Guard: ignore duplicate calls while annotation window is already showing.
+  // This prevents a double-dialog when the hotkey and the Chrome extension
+  // native host both fire for the same text selection.
+  if (_annotationBusy) return
+  _annotationBusy = true
+
   if (!annotationWin) createAnnotationWindow()
   annotationWin.show()
   annotationWin.focus()
+
+  const send = () => annotationWin.webContents.send('show-annotation', data)
   if (annotationWin.webContents.isLoading()) {
-    annotationWin.webContents.once('did-finish-load', () => {
-      annotationWin.webContents.send('show-annotation', data)
-    })
+    annotationWin.webContents.once('did-finish-load', send)
   } else {
-    annotationWin.webContents.send('show-annotation', data)
+    send()
   }
 }
 
 function hideAnnotation() {
+  _annotationBusy = false
   if (annotationWin) annotationWin.hide()
 }
 

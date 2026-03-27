@@ -1,5 +1,12 @@
 const { contextBridge, ipcRenderer } = require('electron')
 
+// Safe event subscription: removes any previous listener before adding the new
+// one, preventing accumulation across hot-reloads or repeated calls.
+function on(channel, cb) {
+  ipcRenderer.removeAllListeners(channel)
+  ipcRenderer.on(channel, (_, ...args) => cb(...args))
+}
+
 contextBridge.exposeInMainWorld('captorAPI', {
   // Capture flow
   startCapture: () => ipcRenderer.send('start-capture'),
@@ -7,29 +14,29 @@ contextBridge.exposeInMainWorld('captorAPI', {
   cancelCapture: () => ipcRenderer.send('cancel-capture'),
 
   // Annotation flow
-  onShowAnnotation: (cb) => ipcRenderer.on('show-annotation', (_, data) => cb(data)),
+  onShowAnnotation: (cb) => on('show-annotation', cb),
   saveHighlight: (data) => ipcRenderer.invoke('save-highlight', data),
   cancelAnnotation: () => ipcRenderer.send('cancel-annotation'),
 
   // Gallery
   loadHighlights: () => ipcRenderer.invoke('load-highlights'),
   getThumbnailData: (filePath) => ipcRenderer.invoke('get-thumbnail-data', filePath),
-  onHighlightSaved: (cb) => ipcRenderer.on('highlight-saved', (_, entry) => cb(entry)),
+  onHighlightSaved: (cb) => on('highlight-saved', cb),
   updateHighlight: (id, fields) => ipcRenderer.invoke('update-highlight', { id, fields }),
   deleteHighlight: (id) => ipcRenderer.invoke('delete-highlight', id),
-  onHighlightUpdated: (cb) => ipcRenderer.on('highlight-updated', (_, entry) => cb(entry)),
-  onHighlightDeleted: (cb) => ipcRenderer.on('highlight-deleted', (_, id) => cb(id)),
+  onHighlightUpdated: (cb) => on('highlight-updated', cb),
+  onHighlightDeleted: (cb) => on('highlight-deleted', cb),
 
   // Folder management
   chooseFolder: () => ipcRenderer.invoke('choose-folder'),
   getActiveFolder: () => ipcRenderer.invoke('get-active-folder'),
   setActiveFolder: (folderPath) => ipcRenderer.invoke('set-active-folder', folderPath),
   getFolderTree: (folderPath) => ipcRenderer.invoke('get-folder-tree', folderPath),
-  onFolderChanged: (cb) => ipcRenderer.on('folder-changed', (_, data) => cb(data)),
+  onFolderChanged: (cb) => on('folder-changed', cb),
 
   // Floating button position persistence
   saveButtonPosition: (pos) => ipcRenderer.send('save-button-position', pos),
 
   // Chrome extension / text highlight
-  onTextHighlight: (cb) => ipcRenderer.on('text-highlight', (_, data) => cb(data)),
+  onTextHighlight: (cb) => on('text-highlight', cb),
 })
