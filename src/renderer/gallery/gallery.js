@@ -6,9 +6,7 @@ let lightboxCurrentId = null  // track which entry is open in the edit panel
 
 // ── Init ───────────────────────────────────────────────
 async function init() {
-  const folderPath = await window.captorAPI.getActiveFolder()
-  updateFolderLabel(folderPath)
-  if (folderPath) renderFolderTree(folderPath)
+  await renderFolderList()
 
   allHighlights = await window.captorAPI.loadHighlights()
   renderTagSidebar()
@@ -40,8 +38,7 @@ window.captorAPI.onHighlightDeleted((id) => {
 
 // Listen for folder changes
 window.captorAPI.onFolderChanged(({ folderPath }) => {
-  updateFolderLabel(folderPath)
-  renderFolderTree(folderPath)
+  renderFolderList()
   window.captorAPI.loadHighlights().then((list) => {
     allHighlights = list
     renderTagSidebar()
@@ -50,80 +47,65 @@ window.captorAPI.onFolderChanged(({ folderPath }) => {
 })
 
 // ── Folder UI ──────────────────────────────────────────
-function updateFolderLabel(folderPath) {
-  const label = document.getElementById('activeFolderLabel')
-  if (folderPath) {
+async function renderFolderList() {
+  const listEl = document.getElementById('folderList')
+  listEl.innerHTML = ''
+
+  const [history, activeFolder] = await Promise.all([
+    window.captorAPI.getFolderHistory(),
+    window.captorAPI.getActiveFolder(),
+  ])
+
+  if (!history || history.length === 0) return
+
+  history.forEach((folderPath) => {
     const parts = folderPath.replace(/\\/g, '/').split('/')
-    label.textContent = parts[parts.length - 1] || folderPath
-    label.title = folderPath
-  } else {
-    label.textContent = 'Default (App Data)'
-    label.title = ''
-  }
-}
+    const name = parts[parts.length - 1] || folderPath
+    const isActive = folderPath === activeFolder
 
-async function renderFolderTree(rootPath) {
-  const treeEl = document.getElementById('folderTree')
-  treeEl.innerHTML = ''
-  if (!rootPath) return
-  try {
-    const tree = await window.captorAPI.getFolderTree(rootPath)
-    if (tree && tree.children && tree.children.length > 0) {
-      tree.children.forEach((node) => treeEl.appendChild(buildTreeNode(node, 0)))
-    }
-  } catch (e) {
-    console.error('Failed to render folder tree:', e)
-  }
-}
+    const item = document.createElement('div')
+    item.className = 'folder-item' + (isActive ? ' active' : '')
 
-function buildTreeNode(node, depth) {
-  const wrapper = document.createElement('div')
-  wrapper.className = 'tree-node'
+    const nameBtn = document.createElement('div')
+    nameBtn.className = 'folder-item-name'
+    nameBtn.title = folderPath
+    nameBtn.innerHTML = `<svg viewBox="0 0 16 16" fill="none" width="13" height="13">
+      <path d="M1.5 3.5A1 1 0 0 1 2.5 2.5h3.086a1 1 0 0 1 .707.293L7.5 4h6a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V3.5z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+    </svg>`
+    const nameSpan = document.createElement('span')
+    nameSpan.textContent = name
+    nameBtn.appendChild(nameSpan)
 
-  const row = document.createElement('div')
-  row.className = 'tree-row'
-  row.style.paddingLeft = `${4 + depth * 14}px`
+    const openBtn = document.createElement('button')
+    openBtn.className = 'folder-item-open'
+    openBtn.title = 'Open in Finder'
+    openBtn.innerHTML = `<svg viewBox="0 0 16 16" fill="none" width="13" height="13">
+      <path d="M6 3H3a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      <path d="M9 2h5v5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M14 2L8 8" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+    </svg>`
 
-  const toggle = document.createElement('span')
-  toggle.className = 'tree-toggle'
-  toggle.innerHTML = node.children && node.children.length > 0 ? '&#9654;' : ''
-  row.appendChild(toggle)
+    item.appendChild(nameBtn)
+    item.appendChild(openBtn)
 
-  const icon = document.createElement('span')
-  icon.className = 'tree-icon'
-  icon.textContent = '📁'
-  row.appendChild(icon)
-
-  const name = document.createElement('span')
-  name.className = 'tree-name'
-  name.textContent = node.name
-  name.title = node.path
-  row.appendChild(name)
-
-  wrapper.appendChild(row)
-
-  if (node.children && node.children.length > 0) {
-    const childrenEl = document.createElement('div')
-    childrenEl.className = 'tree-children'
-    node.children.forEach((child) => childrenEl.appendChild(buildTreeNode(child, depth + 1)))
-    wrapper.appendChild(childrenEl)
-
-    row.addEventListener('click', (e) => {
-      e.stopPropagation()
-      const isOpen = childrenEl.classList.toggle('open')
-      toggle.classList.toggle('open', isOpen)
-      icon.textContent = isOpen ? '📂' : '📁'
+    nameBtn.addEventListener('click', async () => {
+      await window.captorAPI.setActiveFolder(folderPath)
+      // onFolderChanged will fire and re-render everything
     })
-  }
 
-  return wrapper
+    openBtn.addEventListener('click', (e) => {
+      e.stopPropagation()
+      window.captorAPI.openInFinder(folderPath)
+    })
+
+    listEl.appendChild(item)
+  })
 }
 
 document.getElementById('chooseFolderBtn').addEventListener('click', async () => {
   const folderPath = await window.captorAPI.chooseFolder()
   if (folderPath) {
-    updateFolderLabel(folderPath)
-    renderFolderTree(folderPath)
+    // onFolderChanged fires automatically; renderFolderList is called there
     allHighlights = await window.captorAPI.loadHighlights()
     renderTagSidebar()
     renderGrid()
