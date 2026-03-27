@@ -18,7 +18,7 @@
     "appId": "com.captor.app",
     "productName": "Captor",
     "directories": { "output": "build" },
-    "files": ["src/**/*", "assets/**/*"],
+    "files": ["src/**/*", "assets/**/*", "helpers/**/*", "scripts/**/*"],
     "mac": {
       "icon": "assets/icon.icns",
       "hardenedRuntime": true,

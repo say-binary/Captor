@@ -25,7 +25,12 @@ function createGalleryWindow() {
     },
   })
   galleryWin.loadFile(path.join(__dirname, '../renderer/gallery/gallery.html'))
-  galleryWin.on('closed', () => { galleryWin = null })
+  galleryWin.on('closed', () => {
+    galleryWin = null
+    // Gallery is the main window — quit the app when it's closed
+    const { app } = require('electron')
+    app.quit()
+  })
   return galleryWin
 }
 
@@ -123,7 +128,7 @@ function createAnnotationWindow() {
   annotationWin.loadFile(
     path.join(__dirname, '../renderer/annotation/annotation.html')
   )
-  annotationWin.on('closed', () => { annotationWin = null })
+  annotationWin.on('closed', () => { annotationWin = null; _annotationBusy = false })
   return annotationWin
 }
 
@@ -146,13 +151,14 @@ function hideOverlay() {
 }
 
 let _annotationBusy = false
+let _lastAnnotationTime = 0
 
 function showAnnotation(data) {
-  // Guard: ignore duplicate calls while annotation window is already showing.
-  // This prevents a double-dialog when the hotkey and the Chrome extension
-  // native host both fire for the same text selection.
-  if (_annotationBusy) return
+  // Debounce: ignore calls within 1.5s of the previous accepted call.
+  const now = Date.now()
+  if (_annotationBusy || now - _lastAnnotationTime < 1500) return
   _annotationBusy = true
+  _lastAnnotationTime = now
 
   if (!annotationWin) createAnnotationWindow()
   annotationWin.show()

@@ -3,6 +3,14 @@ const net = require('net')
 const windows = require('./windows')
 const ipcHandlers = require('./ipc-handlers')
 
+// ── Single instance lock ────────────────────────────────────
+// Prevents multiple Captor processes from running simultaneously.
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  console.log('Another Captor instance is already running — exiting.')
+  app.quit()
+}
+
 // Suppress macOS audio capture warning (safe on all platforms)
 app.commandLine.appendSwitch('disable-features', 'MacCatapLoopbackAudioForScreenShare')
 
@@ -46,6 +54,15 @@ function startNativeHostServer() {
     console.error('Native host server error:', err)
   })
 }
+
+// When a second instance is attempted, focus the existing gallery window
+app.on('second-instance', () => {
+  const gw = windows.getGalleryWin()
+  if (gw) {
+    if (gw.isMinimized()) gw.restore()
+    gw.focus()
+  }
+})
 
 app.whenReady().then(async () => {
   // Create all windows first so the app is immediately usable
@@ -129,8 +146,7 @@ app.on('will-quit', () => {
 })
 
 app.on('window-all-closed', () => {
-  // Keep app alive on macOS (menu bar); quit on Windows/Linux
-  if (process.platform !== 'darwin') app.quit()
+  app.quit()
 })
 
 async function checkMacOSPermissions() {
