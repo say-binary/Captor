@@ -92,7 +92,11 @@ app.whenReady().then(async () => {
   const clipRegistered = globalShortcut.register('CommandOrControl+Shift+S', () => {
     if (process.platform === 'darwin') {
       const prevClipboard = clipboard.readText()
-      const helperPath = require('path').join(__dirname, '../../helpers/copy_selection')
+      // In packaged app: helpers are in Resources/helpers/ (extraResources)
+      // In dev mode: helpers are in project root helpers/
+      const helperPath = app.isPackaged
+        ? require('path').join(process.resourcesPath, 'helpers', 'copy_selection')
+        : require('path').join(__dirname, '../../helpers/copy_selection')
 
       // Use compiled Swift helper that posts CGEvent at HID level —
       // requires NO Accessibility permission, works in any app.
