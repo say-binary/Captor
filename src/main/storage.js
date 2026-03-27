@@ -24,7 +24,15 @@ function getActiveFolder() {
 function setActiveFolder(folderPath) {
   const cfg = loadConfig()
   cfg.activeFolder = folderPath
+  // Keep a deduped history list, most-recent first, max 20 entries
+  const history = (cfg.folderHistory || []).filter((p) => p !== folderPath)
+  history.unshift(folderPath)
+  cfg.folderHistory = history.slice(0, 20)
   saveConfig(cfg)
+}
+
+function getFolderHistory() {
+  return loadConfig().folderHistory || []
 }
 
 function saveButtonPosition(pos) {
@@ -135,6 +143,7 @@ module.exports = {
   getThumbnailData,
   getActiveFolder,
   setActiveFolder,
+  getFolderHistory,
   getFolderTree,
   saveButtonPosition,
   getButtonPosition,

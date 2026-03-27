@@ -21,15 +21,15 @@
     </div>
 
     <!-- Folder section -->
-    <div class="section-label">Save Folder</div>
-    <div class="folder-picker">
-      <div id="activeFolderLabel" class="active-folder-label">Default (App Data)</div>
-      <button id="chooseFolderBtn" class="btn-choose-folder" title="Choose folder">
-        <svg viewBox="0 0 20 20" fill="none"><path d="M2 6a2 2 0 012-2h4l2 2h6a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" stroke="currentColor" stroke-width="1.5"/></svg>
-        Change
+    <div class="section-label-row">
+      <span class="section-label" style="margin-top:0">Folders</span>
+      <button id="chooseFolderBtn" class="btn-add-folder" title="Add folder">
+        <svg viewBox="0 0 16 16" fill="none" width="12" height="12">
+          <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
       </button>
     </div>
-    <div id="folderTree" class="folder-tree"></div>
+    <div id="folderList" class="folder-list"></div>
 
     <!-- Tags section -->
     <div class="section-label" style="margin-top:8px">Tags</div>

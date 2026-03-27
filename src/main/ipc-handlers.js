@@ -1,4 +1,4 @@
-const { ipcMain, dialog } = require('electron')
+const { ipcMain, dialog, shell } = require('electron')
 const windows = require('./windows')
 const capture = require('./capture')
 const storage = require('./storage')
@@ -84,6 +84,12 @@ function register() {
 
   ipcMain.handle('get-folder-tree', (event, folderPath) => {
     return storage.getFolderTree(folderPath)
+  })
+
+  ipcMain.handle('get-folder-history', () => storage.getFolderHistory())
+
+  ipcMain.on('open-in-finder', (event, folderPath) => {
+    shell.openPath(folderPath)
   })
 
   // ── Floating button position ──────────────────────────

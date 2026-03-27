@@ -35,63 +35,56 @@ html, body {
 
 .section-label {
   font-size: 10px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.08em; color: #5a5a7a; margin-top: 4px; padding-left: 2px;
+  letter-spacing: 0.08em; color: #5a5a7a; padding-left: 2px;
 }
 
-/* ── Folder picker ───────────────────────────── */
-.folder-picker {
-  display: flex; align-items: center; gap: 6px;
+/* ── Folder section header ───────────────────── */
+.section-label-row {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 4px; padding-right: 2px;
 }
 
-.active-folder-label {
-  flex: 1; font-size: 11px; color: #7a7a9a;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  padding: 3px 2px;
-}
-
-.btn-choose-folder {
-  flex-shrink: 0;
-  display: flex; align-items: center; gap: 4px;
+.btn-add-folder {
+  display: flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
   background: rgba(108,99,255,0.12); border: none;
-  color: #a09af0; font-family: inherit; font-size: 11px;
-  font-weight: 600; padding: 4px 8px; border-radius: 5px;
-  cursor: pointer; transition: background 0.15s;
+  color: #a09af0; border-radius: 4px; cursor: pointer;
+  transition: background 0.15s; flex-shrink: 0;
 }
-.btn-choose-folder:hover { background: rgba(108,99,255,0.22); }
-.btn-choose-folder svg { width: 13px; height: 13px; }
+.btn-add-folder:hover { background: rgba(108,99,255,0.25); }
 
-/* ── Folder tree ─────────────────────────────── */
-.folder-tree { display: flex; flex-direction: column; gap: 1px; }
+/* ── Folder history list ─────────────────────── */
+.folder-list { display: flex; flex-direction: column; gap: 1px; }
 
-.tree-node { display: flex; flex-direction: column; }
-
-.tree-row {
-  display: flex; align-items: center; gap: 4px;
-  padding: 3px 4px; border-radius: 4px; cursor: pointer;
-  font-size: 11px; color: #7a7a9a;
-  transition: background 0.1s, color 0.1s;
+.folder-item {
+  display: flex; align-items: center; gap: 0;
+  border-radius: 6px; cursor: pointer;
+  transition: background 0.1s;
   user-select: none;
 }
-.tree-row:hover { background: rgba(255,255,255,0.05); color: #b0b0cc; }
-.tree-row.active { background: rgba(108,99,255,0.15); color: #c0b8ff; }
+.folder-item:hover { background: rgba(255,255,255,0.05); }
+.folder-item.active { background: rgba(108,99,255,0.18); }
 
-.tree-toggle {
-  width: 12px; height: 12px; display: flex; align-items: center;
-  justify-content: center; flex-shrink: 0; color: #44445a; font-size: 9px;
-  transition: transform 0.15s;
+.folder-item-name {
+  flex: 1; display: flex; align-items: center; gap: 6px;
+  padding: 6px 6px 6px 8px; min-width: 0;
+  font-size: 12px; color: #9999bb;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.tree-toggle.open { transform: rotate(90deg); }
+.folder-item.active .folder-item-name { color: #c0b8ff; font-weight: 600; }
+.folder-item-name svg { flex-shrink: 0; opacity: 0.6; }
+.folder-item.active .folder-item-name svg { opacity: 1; }
 
-.tree-icon { flex-shrink: 0; font-size: 12px; }
-.tree-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-.tree-children {
-  margin-left: 14px;
-  border-left: 1px solid rgba(255,255,255,0.05);
-  padding-left: 4px;
-  display: none;
+.folder-item-open {
+  flex-shrink: 0; width: 26px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; background: transparent; cursor: pointer;
+  color: #44445a; border-radius: 4px;
+  transition: color 0.1s, background 0.1s;
+  opacity: 0;
 }
-.tree-children.open { display: flex; flex-direction: column; gap: 1px; }
+.folder-item:hover .folder-item-open { opacity: 1; }
+.folder-item-open:hover { color: #a09af0; background: rgba(108,99,255,0.15); }
 
 /* ── Tags ────────────────────────────────────── */
 .tag-list { display: flex; flex-direction: column; gap: 3px; }

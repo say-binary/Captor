@@ -32,6 +32,8 @@ contextBridge.exposeInMainWorld('captorAPI', {
   getActiveFolder: () => ipcRenderer.invoke('get-active-folder'),
   setActiveFolder: (folderPath) => ipcRenderer.invoke('set-active-folder', folderPath),
   getFolderTree: (folderPath) => ipcRenderer.invoke('get-folder-tree', folderPath),
+  getFolderHistory: () => ipcRenderer.invoke('get-folder-history'),
+  openInFinder: (folderPath) => ipcRenderer.send('open-in-finder', folderPath),
   onFolderChanged: (cb) => on('folder-changed', cb),
 
   // Floating button position persistence
